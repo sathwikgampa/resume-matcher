@@ -12,7 +12,17 @@ Most resume matchers either cost money (API-based AI scoring) or hide their logi
 - **Keyword extraction**: strips noise (stopwords, punctuation, formatting) down to meaningful terms
 - **Cosine similarity scoring**: mathematically compares a resume against a job description, 0–100%
 - **Key Strengths / Critical Gaps breakdown**: shows exactly which keywords matched and which are missing
-- **Zero dependencies**: runs on the JDK alone — no Maven, no Gradle, no third-party packages
+- **JSON API**: `/match` endpoint returns structured JSON, ready for any frontend to consume
+- **Zero-dependency backend**: the entire matching engine runs on the JDK alone — no Maven, no Gradle, no third-party packages
+
+## Design Philosophy: Dependency-Free Backend, Modern Frontend
+
+This project draws a deliberate line between two layers:
+
+- **Backend (matching logic + API):** 100% pure Java, zero external dependencies. Every score, keyword match, and gap can be traced back to auditable code — no black-box libraries involved. This is the part meant to demonstrate algorithmic understanding.
+- **Frontend (presentation layer):** currently a minimal HTML form for basic usability, intended to be rebuilt later with a modern stack (React, or any HTML/CSS/JS of choice). The frontend's job is user experience, not core logic — so it's fine for it to use whatever tooling makes that easiest.
+
+The `/match` endpoint returns JSON specifically so that swapping in a nicer frontend later requires **zero backend changes** — any UI just calls the same endpoint and renders the result.
 
 ## Requirements
 
@@ -25,7 +35,8 @@ src/
 ├── TextProcessor.java     # Tokenization, stopword removal, normalization
 ├── SimilarityEngine.java  # Frequency vectors, cosine similarity, keyword breakdown
 ├── WebScraper.java        # Fetches and cleans job posting HTML
-└── Main.java              # Wires everything together, prints ranked results
+├── Main.java              # Console-based driver, prints ranked results
+└── Server.java            # Pure-Java HTTP server (com.sun.net.httpserver) exposing a /match JSON API
 ```
 
 ## How to Run
@@ -46,6 +57,28 @@ src/
    String jobUrl = "https://boards.greenhouse.io/company/jobs/12345";
    ```
    Static, non-JS-rendered job boards (Greenhouse, Lever) scrape reliably. Sites like LinkedIn actively block non-browser requests and are not supported — and scraping them would violate their Terms of Service.
+
+## Running the Web Server (Basic UI)
+
+1. Run `Server.java` (right-click → Run, or `java -cp out Server`)
+2. Visit `http://localhost:8080` — a simple form lets you paste a job URL and resume text
+3. Submitting the form returns raw JSON (styling/UX polish is intentionally left for a later frontend pass)
+
+### `/match` API
+
+**Request:** `POST /match` with form-encoded body: `jobUrl`, `resumeText`
+
+**Response:**
+```json
+{
+  "score": 50.40,
+  "matchedCount": 8,
+  "keyStrengths": ["apis", "boot", "databases", "developer", "docker", "rest", "spring", "sql"],
+  "criticalGaps": ["architecture", "experience", "familiarity", "hiring", "java", "kubernetes", "microservices", "plus", "senior", "strong"]
+}
+```
+
+Any frontend — React, plain JavaScript, or otherwise — can call this endpoint directly with `fetch()` and render the result, without touching the Java backend.
 
 ## Sample Output
 
