@@ -1,13 +1,24 @@
 import java.util.*;
 
 public class Main {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
         TextProcessor processor = new TextProcessor();
         SimilarityEngine engine = new SimilarityEngine();
+        WebScraper scraper = new WebScraper();
 
-        String jobDescription = "We are hiring a Senior Java Developer with strong experience in "
-                + "Spring Boot, REST APIs, SQL databases, and microservices architecture. "
-                + "Familiarity with Docker and Kubernetes is a plus.";
+        String jobDescription;
+
+        // Toggle this to switch between live scraping and hardcoded text
+        boolean useLiveScraping = true;
+
+        if (useLiveScraping) {
+            String jobUrl = "https://www.jumptrading.com/hr/job?gh_jid=7565728"; // replace with a real, scraping-friendly job posting URL
+            jobDescription = scraper.fetchPageText(jobUrl);
+        } else {
+            jobDescription = "We are hiring a Senior Java Developer with strong experience in "
+                    + "Spring Boot, REST APIs, SQL databases, and microservices architecture. "
+                    + "Familiarity with Docker and Kubernetes is a plus.";
+        }
 
         Map<String, String> candidates = new LinkedHashMap<>();
         candidates.put("Alice - Java Engineer", "Backend developer with 6 years building REST APIs "
@@ -19,8 +30,7 @@ public class Main {
 
         Map<String, Integer> jobVec = engine.buildFrequencyMap(processor.tokenize(jobDescription));
 
-        // Store results so we can sort before printing
-        List<String[]> results = new ArrayList<>(); // [name, matches, score] as strings for now
+        List<String[]> results = new ArrayList<>();
 
         for (var entry : candidates.entrySet()) {
             Map<String, Integer> resumeVec = engine.buildFrequencyMap(processor.tokenize(entry.getValue()));
@@ -29,7 +39,6 @@ public class Main {
             results.add(new String[]{entry.getKey(), String.valueOf(matches), String.valueOf(score)});
         }
 
-        // Sort descending by score (index 2, parsed as double)
         results.sort((a, b) -> Double.compare(Double.parseDouble(b[2]), Double.parseDouble(a[2])));
 
         System.out.printf("%-25s %-10s %-10s%n", "Candidate", "Matches", "Score");
