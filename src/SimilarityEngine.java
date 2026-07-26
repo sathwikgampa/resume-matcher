@@ -44,4 +44,24 @@ public class SimilarityEngine {
         }
         return count;
     }
+
+    public Set<String> getMatchedKeywords(Map<String, Integer> jobVec, Map<String, Integer> resumeVec) {
+        Set<String> matched = new TreeSet<>();
+        for (String key : jobVec.keySet()) {
+            if (resumeVec.containsKey(key)) {
+                matched.add(key);
+            }
+        }
+        return matched;
+    }
+
+    public Set<String> getMissingKeywords(Map<String, Integer> jobVec, Map<String, Integer> resumeVec) {
+        Set<String> missing = new TreeSet<>();
+        for (String key : jobVec.keySet()) {
+            if (!resumeVec.containsKey(key)) {
+                missing.add(key);
+            }
+        }
+        return missing;
+    }
 }

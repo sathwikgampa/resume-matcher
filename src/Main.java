@@ -9,10 +9,10 @@ public class Main {
         String jobDescription;
 
         // Toggle this to switch between live scraping and hardcoded text
-        boolean useLiveScraping = true;
+        boolean useLiveScraping = false;
 
         if (useLiveScraping) {
-            String jobUrl = "https://www.jumptrading.com/hr/job?gh_jid=7565728"; // replace with a real, scraping-friendly job posting URL
+            String jobUrl = "https://boards.greenhouse.io/somecompany/jobs/1234567"; // replace with a real URL
             jobDescription = scraper.fetchPageText(jobUrl);
         } else {
             jobDescription = "We are hiring a Senior Java Developer with strong experience in "
@@ -30,22 +30,46 @@ public class Main {
 
         Map<String, Integer> jobVec = engine.buildFrequencyMap(processor.tokenize(jobDescription));
 
+        // Store results for the summary table
         List<String[]> results = new ArrayList<>();
+
+        // Store detailed breakdowns to print after the table
+        Map<String, Map<String, Integer>> resumeVectors = new LinkedHashMap<>();
 
         for (var entry : candidates.entrySet()) {
             Map<String, Integer> resumeVec = engine.buildFrequencyMap(processor.tokenize(entry.getValue()));
+            resumeVectors.put(entry.getKey(), resumeVec);
+
             double score = engine.cosineSimilarity(jobVec, resumeVec);
             int matches = engine.countMatchedKeywords(jobVec, resumeVec);
             results.add(new String[]{entry.getKey(), String.valueOf(matches), String.valueOf(score)});
         }
 
+        // Sort descending by score
         results.sort((a, b) -> Double.compare(Double.parseDouble(b[2]), Double.parseDouble(a[2])));
 
+        // Print ranked summary table
         System.out.printf("%-25s %-10s %-10s%n", "Candidate", "Matches", "Score");
         System.out.println("-".repeat(45));
         for (String[] row : results) {
             double score = Double.parseDouble(row[2]);
             System.out.printf("%-25s %-10s %-10.2f%n", row[0], row[1], score);
+        }
+
+        // Print detailed breakdown per candidate (in the same sorted order)
+        System.out.println("\n=== Detailed Breakdown ===");
+        for (String[] row : results) {
+            String name = row[0];
+            double score = Double.parseDouble(row[2]);
+            Map<String, Integer> resumeVec = resumeVectors.get(name);
+
+            Set<String> strengths = engine.getMatchedKeywords(jobVec, resumeVec);
+            Set<String> gaps = engine.getMissingKeywords(jobVec, resumeVec);
+
+            System.out.println("\n" + name);
+            System.out.println("  Score: " + String.format("%.2f", score) + "%");
+            System.out.println("  Key Strengths: " + strengths);
+            System.out.println("  Critical Gaps: " + gaps);
         }
     }
 }
